@@ -1,5 +1,9 @@
 # Verbia CLI
 
+[![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/Sukitly/verbia/blob/main/README.md)
+[![zh](https://img.shields.io/badge/lang-zh-green.svg)](https://github.com/Sukitly/verbia/blob/main/README.zh.md)
+[![ja](https://img.shields.io/badge/lang-ja-yellow.svg)](https://github.com/Sukitly/verbia/blob/main/README.ja.md)
+
 **Verbia CLI** 是一个开源命令行工具，用于管理词汇表，帮助您更高效地学习语言。基于 [Typer](https://typer.tiangolo.com/)
 ，Verbia CLI 可以轻松创建、管理和复习词汇集合。该工具利用大型语言模型（LLMs）生成单词定义，助您快速扩展词汇量。
 

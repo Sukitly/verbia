@@ -32,6 +32,8 @@ jobs:
 
       - name: Run verbia-core tests
         run: uv run pytest verbia-core/tests
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Run verbia-cli tests
         run: uv run pytest verbia-cli/tests

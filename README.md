@@ -1,5 +1,9 @@
 # Verbia CLI
 
+[![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/Sukitly/verbia/blob/main/README.md)
+[![zh](https://img.shields.io/badge/lang-zh-green.svg)](https://github.com/Sukitly/verbia/blob/main/README.zh.md)
+[![ja](https://img.shields.io/badge/lang-ja-yellow.svg)](https://github.com/Sukitly/verbia/blob/main/README.ja.md)
+
 **Verbia CLI** is an open-source command-line tool for managing vocabulary lists to support your language learning
 journey. Built with [Typer](https://typer.tiangolo.com/), Verbia CLI makes it easy to create, manage, and review
 vocabulary collections. This app leverages LLMs (Large Language Models) to generate word definitions, helping learners
