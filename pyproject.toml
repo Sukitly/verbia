@@ -1,0 +1,17 @@
+[project]
+name = "verbia"
+version = "0.1.0"
+description = "A command-line tool for managing vocabulary lists."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+keywords = ["CLI", "language learning", "vocabulary"]
+authors = [
+    { name = "Shuqian", email = "sukitly@gmail.com" }
+]
+
+[tool.uv.workspace]
+members = ["verbia-core", "verbia-cli"]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
