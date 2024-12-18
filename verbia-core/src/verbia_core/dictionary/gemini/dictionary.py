@@ -6,7 +6,7 @@ from langcodes import Language
 from loguru import logger
 
 from verbia_core.dictionary.base import DictionaryBase
-from verbia_core.dictionary.gemini.client import get_client
+from verbia_core.dictionary.gemini.client import get_client, GenerationConfig
 from verbia_core.entry import (
     EnglishEntry,
     Forms,
@@ -171,26 +171,24 @@ class GeminiDictionary(DictionaryBase):
         return self.__client
 
     def _generate(self, prompt: str) -> dict:
-        import google.generativeai as genai
 
         result = self._client.generate_content(
-            contents=prompt,
-            generation_config=genai.GenerationConfig(
+            prompt=prompt,
+            generation_config=GenerationConfig(
                 response_mime_type="application/json"
             ),
         )
-        return json.loads(result.text)
+        return json.loads(result)
 
     async def _async_generate(self, prompt: str) -> dict:
-        import google.generativeai as genai
 
         result = await self._client.generate_content_async(
-            contents=prompt,
-            generation_config=genai.GenerationConfig(
+            prompt=prompt,
+            generation_config=GenerationConfig(
                 response_mime_type="application/json"
             ),
         )
-        return json.loads(result.text)
+        return json.loads(result)
 
     def _extract_to_entry(
         self,
