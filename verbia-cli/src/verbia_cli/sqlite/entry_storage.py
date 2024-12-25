@@ -8,10 +8,8 @@ from sqlmodel import Session, select, SQLModel
 
 from verbia_cli.sqlite.model import WordEntryItem
 from verbia_core.entry import (
-    EnglishEntry,
     Forms,
     Entry,
-    JapaneseEntry,
     Conjugation,
     JapaneseReading,
 )
@@ -20,9 +18,6 @@ from verbia_core.vocabulary import EntryStorageBase
 
 
 def _convert_item_to_entry(item: WordEntryItem) -> Entry:
-    en_code = Language.get("en").language
-    ja_code = Language.get("ja").language
-
     id = item.id
     word = item.word
     vocabulary_id = item.vocabulary_id
@@ -40,76 +35,46 @@ def _convert_item_to_entry(item: WordEntryItem) -> Entry:
     quality = item.quality
     ease_factor = item.ease_factor
 
-    if item.word_language_code == en_code:
-        lemma = item.lemma
+    lemma = item.lemma
+    if item.forms:
         forms = Forms(**json.loads(item.forms))
-        pronunciation = item.pronunciation
-        return EnglishEntry(
-            id=id,
-            word=word,
-            vocabulary_id=vocabulary_id,
-            word_language=word_language,
-            native_language=native_language,
-            native_language_definition=native_language_definition,
-            source=source,
-            example_sentences=example_sentences,
-            notes=notes,
-            created_at=created_at,
-            next_review_at=next_review_at,
-            review_interval_days=review_interval_days,
-            interval=interval,
-            repetitions=repetitions,
-            quality=quality,
-            ease_factor=ease_factor,
-            lemma=lemma,
-            forms=forms,
-            pronunciation=pronunciation,
-            is_new=False,
-        )
-    elif item.word_language_code == ja_code:
-        reading = JapaneseReading(**json.loads(item.reading))
-        conjugation = Conjugation(**json.loads(item.conjugation))
-        return JapaneseEntry(
-            id=id,
-            word=word,
-            vocabulary_id=vocabulary_id,
-            word_language=word_language,
-            native_language=native_language,
-            native_language_definition=native_language_definition,
-            source=source,
-            example_sentences=example_sentences,
-            notes=notes,
-            created_at=created_at,
-            next_review_at=next_review_at,
-            review_interval_days=review_interval_days,
-            interval=interval,
-            repetitions=repetitions,
-            quality=quality,
-            ease_factor=ease_factor,
-            reading=reading,
-            conjugation=conjugation,
-            is_new=False,
-        )
     else:
-        return Entry(
-            id=id,
-            word=word,
-            vocabulary_id=vocabulary_id,
-            word_language=word_language,
-            native_language=native_language,
-            native_language_definition=native_language_definition,
-            source=source,
-            example_sentences=example_sentences,
-            notes=notes,
-            created_at=created_at,
-            next_review_at=next_review_at,
-            review_interval_days=review_interval_days,
-            interval=interval,
-            repetitions=repetitions,
-            quality=quality,
-            ease_factor=ease_factor,
-            is_new=False,
-        )
+        forms = None
+    pronunciation = item.pronunciation
+
+    if item.reading:
+        reading = JapaneseReading(**json.loads(item.reading))
+    else:
+        reading = None
+
+    if item.conjugation:
+        conjugation = Conjugation(**json.loads(item.conjugation))
+    else:
+        conjugation = None
+
+    return Entry(
+        id=id,
+        word=word,
+        vocabulary_id=vocabulary_id,
+        word_language=word_language,
+        native_language=native_language,
+        native_language_definition=native_language_definition,
+        source=source,
+        example_sentences=example_sentences,
+        notes=notes,
+        created_at=created_at,
+        next_review_at=next_review_at,
+        review_interval_days=review_interval_days,
+        repetitions=repetitions,
+        quality=quality,
+        ease_factor=ease_factor,
+        is_new=False,
+        lemma=lemma,
+        forms=forms,
+        pronunciation=pronunciation,
+        reading=reading,
+        conjugation=conjugation,
+    )
 
 
 def _convert_entry_to_item(entry: Entry) -> WordEntryItem:
@@ -123,7 +88,6 @@ def _convert_entry_to_item(entry: Entry) -> WordEntryItem:
     created_at = entry.created_at
     next_review_at = entry.next_review_at
     review_interval_days = entry.review_interval_days
-    interval = entry.interval
     repetitions = entry.repetitions
     quality = entry.quality
     ease_factor = entry.ease_factor
@@ -138,21 +102,20 @@ def _convert_entry_to_item(entry: Entry) -> WordEntryItem:
     else:
         notes = "[]"
 
-    lemma = None
-    forms = None
-    pronunciation = None
-    reading = None
-    conjugation = None
-    if isinstance(entry, EnglishEntry):
-        lemma = entry.lemma
-        if entry.forms:
-            forms = json.dumps(asdict(entry.forms))
-        else:
-            forms = None
-        pronunciation = entry.pronunciation
-    elif isinstance(entry, JapaneseEntry):
+    lemma = entry.lemma
+    if entry.forms:
+        forms = json.dumps(asdict(entry.forms))
+    else:
+        forms = None
+    pronunciation = entry.pronunciation
+    if entry.reading:
         reading = json.dumps(asdict(entry.reading))
+    else:
+        reading = None
+    if entry.conjugation:
         conjugation = json.dumps(asdict(entry.conjugation))
+    else:
+        conjugation = None
 
     return WordEntryItem(
         id=id,
@@ -167,7 +130,6 @@ def _convert_entry_to_item(entry: Entry) -> WordEntryItem:
         created_at=created_at,
         next_review_at=next_review_at,
         review_interval_days=review_interval_days,
-        interval=interval,
         repetitions=repetitions,
         quality=quality,
         ease_factor=ease_factor,
@@ -211,15 +173,7 @@ class SQLiteEntryStorage(EntryStorageBase):
                 session.delete(item)
                 session.commit()
 
-    def list_all(self, vocabulary_id: str) -> list[Entry]:
-        with Session(self._engine) as session:
-            statement = select(WordEntryItem).where(
-                WordEntryItem.vocabulary_id == vocabulary_id
-            )
-            items = session.exec(statement).all()
-            return [_convert_item_to_entry(item) for item in items]
-
-    def list_all_due(self, vocabulary_id: str) -> list[Entry]:
+    def list_due(self, vocabulary_id: str, limit: int = 100) -> list[Entry]:
         due_time = time_provider.last_moment_of_day(1)
         with Session(self._engine) as session:
             statement = (

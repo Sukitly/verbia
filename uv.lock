@@ -761,7 +761,7 @@ dev = [
 
 [[package]]
 name = "verbia-core"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "verbia-core" }
 dependencies = [
     { name = "aiohttp" },

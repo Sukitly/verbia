@@ -22,13 +22,13 @@ class SM2ReviewStrategy(ReviewStrategy):
         entry.ease_factor = max(entry.ease_factor, 1.3)  # 确保易度因子不小于 1.3
 
         if entry.repetitions == 0:
-            entry.interval = 1
+            entry.review_interval_days = 1
         elif entry.repetitions == 1:
-            entry.interval = 6
+            entry.review_interval_days = 6
         else:
-            entry.interval = round(entry.interval * entry.ease_factor)
+            entry.review_interval_days = round(entry.review_interval_days * entry.ease_factor)
 
-        entry.next_review_date = time_provider.time_mills_from_now(entry.interval)
+        entry.next_review_date = time_provider.time_mills_from_now(entry.review_interval_days)
         entry.repetitions += 1
 
         return entry

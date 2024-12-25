@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch, PropertyMock, AsyncMock
 import pytest
 from langcodes import Language
 
+from verbia_core.dictionary import Word
 from verbia_core.entry import Entry
 from verbia_core.error import VerbiaError
 from verbia_core.vocabulary import Vocabulary
@@ -37,6 +38,17 @@ def mock_vocabulary():
 
 
 @pytest.fixture
+def mock_word():
+    return Word(
+        word="test",
+        native_language=Language.get("fr"),
+        word_language=Language.get("en"),
+        source="Gemini",
+        native_language_definition="test definition",
+    )
+
+
+@pytest.fixture
 def mock_entry():
     return Entry(
         word="test",
@@ -57,7 +69,7 @@ def test_add_word_existing_entry(_entry_storage, mock_vocabulary, mock_entry):
 
     result = mock_vocabulary.add_word("test")
 
-    assert result == mock_entry
+    assert result.word == mock_entry.word
 
     mock_entry_storage.get.assert_called_once_with(mock_entry.word, mock_vocabulary.id)
     mock_entry_storage.add_or_update.assert_not_called()
@@ -65,21 +77,21 @@ def test_add_word_existing_entry(_entry_storage, mock_vocabulary, mock_entry):
 
 @patch.object(FakeVocabulary, "_entry_storage", new_callable=PropertyMock)
 @patch.object(FakeVocabulary, "_dictionary", new_callable=PropertyMock)
-def test_add_word_new_entry(_dictionary, _entry_storage, mock_vocabulary, mock_entry):
+def test_add_word_new_entry(_dictionary, _entry_storage, mock_vocabulary, mock_word):
     mock_entry_storage = MagicMock()
     mock_dictionary = MagicMock()
     _entry_storage.return_value = mock_entry_storage
     _dictionary.return_value = mock_dictionary
     mock_entry_storage.get.return_value = None
-    mock_dictionary.lookup.return_value = mock_entry
+    mock_dictionary.lookup.return_value = mock_word
 
     result = mock_vocabulary.add_word("test")
 
-    assert result == mock_entry
-    mock_entry_storage.get.assert_called_once_with(mock_entry.word, mock_vocabulary.id)
-    mock_entry_storage.add_or_update.assert_called_once_with(mock_entry)
+    assert result.word == mock_word.word
+    mock_entry_storage.get.assert_called_once_with(mock_word.word, mock_vocabulary.id)
+    mock_entry_storage.add_or_update.assert_called_once()
     mock_dictionary.lookup.assert_called_once_with(
-        mock_entry.word, mock_entry.word_language, mock_entry.native_language
+        mock_word.word, mock_word.word_language, mock_word.native_language
     )
 
 
@@ -103,25 +115,25 @@ def test_add_word_raises_error(_dictionary, _entry_storage, mock_vocabulary):
 @patch.object(FakeVocabulary, "_entry_storage", new_callable=PropertyMock)
 @patch.object(FakeVocabulary, "_dictionary", new_callable=PropertyMock)
 async def test_async_add_word_new_entry(
-    _dictionary, _entry_storage, mock_vocabulary, mock_entry
+    _dictionary, _entry_storage, mock_vocabulary, mock_word, mock_entry
 ):
     mock_entry_storage = AsyncMock()
     mock_dictionary = AsyncMock()
     _entry_storage.return_value = mock_entry_storage
     _dictionary.return_value = mock_dictionary
     mock_entry_storage.async_get.return_value = None
-    mock_dictionary.async_lookup.return_value = mock_entry
+    mock_dictionary.async_lookup.return_value = mock_word
 
     result = await mock_vocabulary.async_add_word("test")
 
-    assert result == mock_entry
+    assert result.word == mock_word.word
 
     mock_entry_storage.async_get.assert_called_once_with(
-        mock_entry.word, mock_vocabulary.id
+        mock_word.word, mock_vocabulary.id
     )
-    mock_entry_storage.async_add_or_update.assert_awaited_once_with(mock_entry)
+    mock_entry_storage.async_add_or_update.assert_awaited_once()
     mock_dictionary.async_lookup.assert_awaited_once_with(
-        mock_entry.word, mock_entry.word_language, mock_entry.native_language
+        mock_word.word, mock_word.word_language, mock_word.native_language
     )
 
 

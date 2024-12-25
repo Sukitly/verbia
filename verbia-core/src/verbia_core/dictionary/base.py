@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from langcodes import Language
 
-from verbia_core.entry import Entry
+from verbia_core.dictionary.word import Word
 
 
 class DictionaryBase(ABC):
@@ -12,11 +12,11 @@ class DictionaryBase(ABC):
     @abstractmethod
     def lookup(
         self, word: str, word_language: Language, native_language: Language
-    ) -> Entry:
+    ) -> Word | None:
         pass
 
     @abstractmethod
     async def async_lookup(
         self, word: str, word_language: Language, native_language: Language
-    ) -> Entry:
+    ) -> Word | None:
         pass
