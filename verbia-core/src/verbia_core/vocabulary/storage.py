@@ -17,11 +17,7 @@ class EntryStorageBase(ABC):
         pass
 
     @abstractmethod
-    def list_all(self, vocabulary_id: str) -> list[Entry]:
-        pass
-
-    @abstractmethod
-    def list_all_due(self, vocabulary_id) -> list[Entry]:
+    def list_due(self, vocabulary_id: str, limit: int = 100) -> list[Entry]:
         pass
 
     @abstractmethod

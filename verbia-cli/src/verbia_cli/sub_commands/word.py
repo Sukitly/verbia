@@ -1,6 +1,7 @@
 import os
 
 import typer
+from langcodes import Language
 from loguru import logger
 from rich import get_console
 from rich.padding import Padding
@@ -11,7 +12,7 @@ from typing_extensions import Annotated
 from verbia_cli import config
 from verbia_cli.common import handle_verbia_error, set_states
 from verbia_cli.vocabulary import LocalVocabulary
-from verbia_core.entry import EnglishEntry, Entry, JapaneseEntry
+from verbia_core.entry import Entry
 from verbia_core.error import VerbiaError
 from verbia_core.utils import time_provider
 from verbia_core.vocabulary import Vocabulary
@@ -56,7 +57,7 @@ def display_entry(
         table.add_section()
 
     # Add forms, if available (for EnglishEntry)
-    if isinstance(entry, EnglishEntry):
+    if entry.word_language == Language.get("en"):
         table.add_row("Pronunciation", Text(entry.pronunciation or "N/A"))
         table.add_row("Lemma", Text(entry.lemma or "N/A"))
         if entry.forms:
@@ -81,7 +82,7 @@ def display_entry(
             if forms_text:
                 table.add_row("Forms", "\n".join(forms_text))
 
-    if isinstance(entry, JapaneseEntry):
+    if entry.word_language == Language.get("ja"):
         if entry.reading:
             reading = entry.reading
             reading_text = []
@@ -212,9 +213,7 @@ def review_words():
     The user will be prompted for feedback on their recall of each word.
     """
     _vocabulary = current_vocabulary()
-    due_words = (
-        _vocabulary.list_all_due_entries()
-    )  # Fetch words that are due for review
+    due_words = _vocabulary.list_due_entries()  # Fetch words that are due for review
 
     if not due_words:
         typer.echo("No words are due for review at the moment.")

@@ -7,14 +7,7 @@ from loguru import logger
 
 from verbia_core.dictionary.base import DictionaryBase
 from verbia_core.dictionary.gemini.client import get_client, GenerationConfig
-from verbia_core.entry import (
-    EnglishEntry,
-    Forms,
-    Entry,
-    JapaneseEntry,
-    JapaneseReading,
-    Conjugation,
-)
+from verbia_core.dictionary.word import Word, JapaneseReading, Conjugation, Forms
 from verbia_core.error import WordInvalidError
 
 # Suppress logging warnings
@@ -171,45 +164,39 @@ class GeminiDictionary(DictionaryBase):
         return self.__client
 
     def _generate(self, prompt: str) -> dict:
-
         result = self._client.generate_content(
             prompt=prompt,
-            generation_config=GenerationConfig(
-                response_mime_type="application/json"
-            ),
+            generation_config=GenerationConfig(response_mime_type="application/json"),
         )
         return json.loads(result)
 
     async def _async_generate(self, prompt: str) -> dict:
-
         result = await self._client.generate_content_async(
             prompt=prompt,
-            generation_config=GenerationConfig(
-                response_mime_type="application/json"
-            ),
+            generation_config=GenerationConfig(response_mime_type="application/json"),
         )
         return json.loads(result)
 
-    def _extract_to_entry(
+    def _extract_to_word(
         self,
         response: dict,
         word: str,
         word_language: Language,
         native_language: Language,
-    ) -> Entry:
+    ) -> Word | None:
         match word_language.language:
             case "en":
-                return self._extract_to_english_entry(response, word, native_language)
+                return self._extract_to_english_word(response, word, native_language)
             case "ja":
-                return self._extract_to_japanese_entry(response, word, native_language)
+                return self._extract_to_japanese_word(response, word, native_language)
             case _:
-                return self._extract_to_common_entry(
+                return self._extract_to_common_word(
                     response, word, word_language, native_language
                 )
 
-    def _extract_to_english_entry(
+    def _extract_to_english_word(
         self, response: dict, word: str, native_language: Language
-    ) -> EnglishEntry:
+    ) -> Word | None:
         if not isinstance(response, dict):
             logger.error("Response is not a valid dictionary")
             raise ValueError("Invalid response format: expected a dictionary")
@@ -217,7 +204,7 @@ class GeminiDictionary(DictionaryBase):
         definition = response.get("definition")
         if _is_none(definition):
             logger.warning(f"Definition not found for word: {word}")
-            raise WordInvalidError(word, native_language.display_name())
+            return None
 
         _forms = response.get("forms", {})
         if not isinstance(_forms, dict):
@@ -252,7 +239,7 @@ class GeminiDictionary(DictionaryBase):
         lemma = response.get("lemma")
         pronunciation = response.get("pronunciation")
 
-        return EnglishEntry(
+        return Word(
             word=word,
             native_language=native_language,
             native_language_definition=definition,
@@ -260,12 +247,12 @@ class GeminiDictionary(DictionaryBase):
             lemma=lemma,
             pronunciation=pronunciation,
             source=self._source,
-            is_new=True,
+            word_language=Language.get("en"),
         )
 
-    def _extract_to_japanese_entry(
+    def _extract_to_japanese_word(
         self, response: dict, word: str, native_language: Language
-    ) -> JapaneseEntry:
+    ) -> Word | None:
         if not isinstance(response, dict):
             logger.error("Response is not a valid dictionary")
             raise ValueError("Invalid response format: expected a dictionary")
@@ -273,7 +260,7 @@ class GeminiDictionary(DictionaryBase):
         definition = response.get("definition")
         if _is_none(definition):
             logger.warning(f"Definition not found for word: {word}")
-            raise WordInvalidError(word, native_language.display_name())
+            return None
 
         example_sentences = response.get("example_sentences", [])
         if not isinstance(example_sentences, list):
@@ -330,7 +317,7 @@ class GeminiDictionary(DictionaryBase):
                 )
                 conjugation = None
 
-        return JapaneseEntry(
+        return Word(
             word=word,
             native_language=native_language,
             native_language_definition=definition,
@@ -338,16 +325,16 @@ class GeminiDictionary(DictionaryBase):
             reading=reading,
             conjugation=conjugation,
             source=self._source,
-            is_new=True,
+            word_language=Language.get("ja"),
         )
 
-    def _extract_to_common_entry(
+    def _extract_to_common_word(
         self,
         response: dict,
         word: str,
         word_language: Language,
         native_language: Language,
-    ) -> Entry:
+    ) -> Word | None:
         if not isinstance(response, dict):
             logger.error("Response is not a valid dictionary")
             raise ValueError("Invalid response format: expected a dictionary")
@@ -355,7 +342,7 @@ class GeminiDictionary(DictionaryBase):
         definition = response.get("definition")
         if _is_none(definition):
             logger.warning(f"Definition not found for word: {word}")
-            raise WordInvalidError(word, native_language.display_name())
+            return None
 
         example_sentences = response.get("example_sentences", [])
         if not isinstance(example_sentences, list):
@@ -364,32 +351,31 @@ class GeminiDictionary(DictionaryBase):
             )
             example_sentences = []
 
-        return Entry(
+        return Word(
             word=word,
             word_language=word_language,
             native_language=native_language,
             native_language_definition=definition,
             example_sentences=example_sentences,
             source=self._source,
-            is_new=True,
         )
 
     def lookup(
         self, word: str, word_language: Language, native_language: Language
-    ) -> Entry:
+    ) -> Word | None:
         logger.debug(
             f"Looking up word '{word}' in {native_language.display_name()} by {self._source}"
         )
         prompt = _prepare_prompt(word, word_language, native_language)
         response = self._generate(prompt)
-        return self._extract_to_entry(response, word, word_language, native_language)
+        return self._extract_to_word(response, word, word_language, native_language)
 
     async def async_lookup(
         self, word: str, word_language: Language, native_language: Language
-    ) -> Entry:
+    ) -> Word | None:
         logger.debug(
             f"Looking up word '{word}' in {native_language.display_name()} by {self._source}"
         )
         prompt = _prepare_prompt(word, word_language, native_language)
         response = await self._async_generate(prompt)
-        return self._extract_to_entry(response, word, word_language, native_language)
+        return self._extract_to_word(response, word, word_language, native_language)

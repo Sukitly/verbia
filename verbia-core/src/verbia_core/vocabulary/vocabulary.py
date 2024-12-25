@@ -4,7 +4,7 @@ from langcodes import Language
 from loguru import logger
 
 from verbia_core.dictionary import DictionaryBase
-from verbia_core.entry import EnglishEntry, Entry
+from verbia_core.entry import Entry
 from verbia_core.error import VerbiaError
 from verbia_core.vocabulary.review import ReviewStrategy
 from verbia_core.vocabulary.storage import EntryStorageBase
@@ -47,10 +47,11 @@ class Vocabulary(ABC):
 
     def _lookup_word(self, word: str) -> Entry | None:
         logger.trace(f"Looking up word '{word}' in the dictionary")
-        entry = self._dictionary.lookup(word, self.word_language, self.native_language)
-        if not entry:
+        _word = self._dictionary.lookup(word, self.word_language, self.native_language)
+        if not _word:
             raise VerbiaError(f"Word '{word}' does not exist in the dictionary.")
-        entry.vocabulary_id = self.id
+
+        entry = Entry.from_word(_word, self.id)
 
         return entry
 
@@ -65,9 +66,8 @@ class Vocabulary(ABC):
         return entry
 
     def _add_lemma_if_applicable(self, entry: Entry, word: str):
-        if entry.is_new and isinstance(entry, EnglishEntry):
-            en_entry: EnglishEntry = entry
-            lemma = en_entry.lemma
+        if entry.is_new and entry.word_language == Language.get("en") and entry.lemma:
+            lemma = entry.lemma
             try:
                 if lemma is not None and lemma != word:
                     self.add_word(lemma)
@@ -85,25 +85,24 @@ class Vocabulary(ABC):
     def delete_entry(self, entry: Entry):
         self._entry_storage.delete(entry)
 
-    def list_all_entries(self) -> list[Entry]:
-        return self._entry_storage.list_all(self.id)
-
     def update_review(self, entry: Entry, quality: int):
         entry = self._review_strategy.update_review(entry, quality)
         self.add_or_update_entry(entry)
 
-    def list_all_due_entries(self) -> list[Entry]:
-        return self._entry_storage.list_all_due(self.id)
+    def list_due_entries(self) -> list[Entry]:
+        return self._entry_storage.list_due(self.id)
 
     async def async_get_entry(self, word: str) -> Entry | None:
         entry = await self._entry_storage.async_get(word, self.id)
         return entry
 
     async def async_lookup_word(self, word: str) -> Entry:
-        entry = await self._dictionary.async_lookup(word, self.word_language, self.native_language)
-        if not entry:
+        _word = await self._dictionary.async_lookup(
+            word, self.word_language, self.native_language
+        )
+        if not _word:
             raise VerbiaError(f"Word '{word}' does not exist in the dictionary.")
-        entry.vocabulary_id = self.id
+        entry = Entry.from_word(_word, self.id)
 
         return entry
 
@@ -113,10 +112,9 @@ class Vocabulary(ABC):
             entry = await self.async_lookup_word(word)
             await self._entry_storage.async_add_or_update(entry)
 
-        if entry.is_new and isinstance(entry, EnglishEntry):
+        if entry.is_new and entry.word_language == Language.get("en") and entry.lemma:
             # Add lemma to vocabulary if it is different from the word, only for English words.
-            en_entry: EnglishEntry = entry
-            lemma = en_entry.lemma
+            lemma = entry.lemma
             try:
                 if lemma is not None and lemma != word:
                     await self.async_add_word(lemma)
