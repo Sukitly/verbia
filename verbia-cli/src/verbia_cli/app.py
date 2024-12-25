@@ -8,7 +8,7 @@ from verbia_cli.sub_commands import word_commands, config_commands, vocabulary_c
 logger.remove()
 logger.add(sys.stdout, level="INFO")
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 # Typer CLI app instance
 app = typer.Typer(
     name="verbia",
