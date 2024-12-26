@@ -56,6 +56,7 @@ class Vocabulary(ABC):
         return entry
 
     def add_word(self, word: str) -> Entry:
+        word = word.strip().lower()
         logger.trace(f"Adding word '{word}' to vocabulary '{self.name}'")
         entry = self.get_entry(word)
         if not entry:

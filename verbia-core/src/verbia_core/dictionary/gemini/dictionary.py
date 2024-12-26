@@ -8,7 +8,6 @@ from loguru import logger
 from verbia_core.dictionary.base import DictionaryBase
 from verbia_core.dictionary.gemini.client import get_client, GenerationConfig
 from verbia_core.dictionary.word import Word, JapaneseReading, Conjugation, Forms
-from verbia_core.error import WordInvalidError
 
 # Suppress logging warnings
 os.environ["GRPC_VERBOSITY"] = "ERROR"
@@ -206,6 +205,13 @@ class GeminiDictionary(DictionaryBase):
             logger.warning(f"Definition not found for word: {word}")
             return None
 
+        example_sentences = response.get("example_sentences", [])
+        if not isinstance(example_sentences, list):
+            logger.warning(
+                f"Example sentences for word '{word}' should be a list. Using empty list."
+            )
+            example_sentences = []
+
         _forms = response.get("forms", {})
         if not isinstance(_forms, dict):
             logger.warning(
@@ -243,6 +249,7 @@ class GeminiDictionary(DictionaryBase):
             word=word,
             native_language=native_language,
             native_language_definition=definition,
+            example_sentences=example_sentences,
             forms=forms,
             lemma=lemma,
             pronunciation=pronunciation,

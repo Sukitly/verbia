@@ -718,7 +718,7 @@ source = { virtual = "." }
 
 [[package]]
 name = "verbia-cli"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "verbia-cli" }
 dependencies = [
     { name = "aiosqlite" },
@@ -761,7 +761,7 @@ dev = [
 
 [[package]]
 name = "verbia-core"
-version = "0.1.1"
+version = "0.1.2"
 source = { editable = "verbia-core" }
 dependencies = [
     { name = "aiohttp" },

@@ -1,10 +1,9 @@
-import uuid
 from dataclasses import dataclass, field
 
 from langcodes import Language
 
 from verbia_core.dictionary import Forms, JapaneseReading, Conjugation, Word
-from verbia_core.utils import time_provider
+from verbia_core.utils import time_provider, SequenceIdGenerator
 
 
 @dataclass
@@ -34,7 +33,7 @@ class Entry:
     repetitions: int = 0
     quality: int = 0
     ease_factor: float = 2.5
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    id: str = field(default_factory=lambda: SequenceIdGenerator.suid())
 
     @classmethod
     def from_word(cls, word: Word, vocabulary_id: str) -> "Entry":
